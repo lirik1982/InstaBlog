@@ -1,7 +1,7 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import Post
-from django.forms import ModelForm
-from django import forms
+from django.contrib import messages
+from .forms import PostCreateForm, PostEditForm
 
 
 def home_view(request):
@@ -10,28 +10,45 @@ def home_view(request):
     return render(request, "posts/home.html", {'posts': posts})
 
 
-class PostCreateForm(ModelForm):
-    class Meta:
-        model = Post
-        fields = '__all__'
-        labels = {
-            'body': 'Caption',
-        }
-        widgets = {
-            'body': forms.Textarea(attrs={
-                'rows': 3,
-                'placeholder': 'Add a caption...',
-                'class': 'font1 text-4xl'}),
-        }
-
-
 def post_create_view(request):
     form = PostCreateForm()
-
     if request.method == "POST":
         form = PostCreateForm(request.POST)
         if form.is_valid():
             form.save()
             return redirect('home')
-
     return render(request, 'posts/create.html', {'form': form})
+
+
+def post_delete_view(request, pk):
+    post = get_object_or_404(Post, id=pk)
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, 'Post deleted')
+        return redirect('home')
+
+    return render(request, 'posts/delete.html', {'post': post})
+
+
+def post_edit_view(request, pk):
+    post = get_object_or_404(Post, id=pk)
+    form = PostEditForm(instance=post)
+
+    if request.method == 'POST':
+        form = PostEditForm(request.POST, instance=post)
+        if form.is_valid:
+            form.save()
+            messages.success(request, 'Post updated')
+            return redirect('home')
+
+    context = {
+        'post': post,
+        'form': form
+    }
+    return render(request, 'posts/edit.html', context)
+
+
+def post_page_view(request, pk):
+    post = get_object_or_404(Post, id=pk)
+
+    return render(request, 'posts/post_page.html', {'post': post})
